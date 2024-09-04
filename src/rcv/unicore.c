@@ -31,6 +31,10 @@
 #define ID_IRNSSEPH    112     /* IRNSS Ephemeris */
 #define ID_BD3EPH      2999    /* BDS-3 Ephemeris */
 
+#define ID_GPSION      8       /* GPS Ionosphere Parameters */
+#define ID_BDSION      4       /* BDS Ionosphere Parameters */
+#define ID_GALION      9       /* GAL Ionosphere Parameters */
+
 #define OFF_FRQNO       -7      /* F/W ver.3.620 */
 
 
@@ -811,6 +815,45 @@ static int decode_obsvmb(raw_t* raw)
     return 1;
 }
 
+/* decode GPS/BDS/GAL ION parameters */
+static int decode_ion(raw_t *raw)
+{
+    uint16_t id = U2(raw->buff + 4);
+    double ion[8];
+    uint8_t* p = raw->buff + HLEN;
+
+    switch (id) {
+        case ID_GPSION:
+            ion[0] = R8(p); p += 8; // a0
+            ion[1] = R8(p); p += 8; // a1
+            ion[2] = R8(p); p += 8; // a2
+            ion[3] = R8(p); p += 8; // a3
+            ion[4] = R8(p); p += 8; // b0
+            ion[5] = R8(p); p += 8; // b1
+            ion[6] = R8(p); p += 8; // b2
+            ion[7] = R8(p);         // b3
+            matcpy(raw->nav.ion_gps,ion,8,1);
+
+        case ID_BDSION:
+            ion[0] = R8(p); p += 8; // a0
+            ion[1] = R8(p); p += 8; // a1
+            ion[2] = R8(p); p += 8; // a2
+            ion[3] = R8(p); p += 8; // a3
+            ion[4] = R8(p); p += 8; // b0
+            ion[5] = R8(p); p += 8; // b1
+            ion[6] = R8(p); p += 8; // b2
+            ion[7] = R8(p);         // b3
+            matcpy(raw->nav.ion_cmp,ion,8,1);
+
+        case ID_GALION:
+            ion[0] = R8(p); p += 8; // ai0
+            ion[1] = R8(p); p += 8; // ai1
+            ion[2] = R8(p);         // ai2
+            matcpy(raw->nav.ion_gal,ion,3,1);
+    }
+
+    return 9;
+}
 
 /* decode Unicore message -----------------------------------------*/
 static int decode_unicore(raw_t* raw)
@@ -854,6 +897,11 @@ static int decode_unicore(raw_t* raw)
     case ID_BDSEPH: return decode_bdsephb(raw);
     case ID_QZSSEPH: return decode_qzssephb(raw);
     case ID_IRNSSEPH: return decode_irnssephb(raw);
+
+    case ID_GPSION: 
+    case ID_BDSION:
+    case ID_GALION:
+        return decode_ion(raw);
     }
     return 0;
 }
